@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101216">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dinner Planner">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Elliott's Dinner Planner</title>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <div class="eyebrow">FORTNIGHT DINNER SYSTEM</div>
+      <h1>Elliott's Dinner Planner</h1>
+    </div>
+    <button id="installBtn" class="ghost hidden">Install</button>
+  </header>
+
+  <main id="app" class="app-shell">
+    <section id="view-today" class="view active"></section>
+    <section id="view-meals" class="view"></section>
+    <section id="view-inventory" class="view"></section>
+    <section id="view-freezer" class="view"></section>
+    <section id="view-history" class="view"></section>
+    <section id="view-shopping" class="view"></section>
+    <section id="view-settings" class="view"></section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <button data-route="today" class="nav-btn active"><span>⌂</span><small>Today</small></button>
+    <button data-route="meals" class="nav-btn"><span>☰</span><small>Meals</small></button>
+    <button data-route="inventory" class="nav-btn"><span>▦</span><small>Stock</small></button>
+    <button data-route="freezer" class="nav-btn"><span>❄</span><small>Freezer</small></button>
+    <button data-route="history" class="nav-btn"><span>✓</span><small>History</small></button>
+  </nav>
+
+  <dialog id="recipeDialog" class="sheet">
+    <div id="recipeContent"></div>
+  </dialog>
+
+  <dialog id="cookDialog" class="sheet cook-sheet">
+    <div id="cookContent"></div>
+  </dialog>
+
+  <dialog id="editDialog" class="sheet">
+    <div id="editContent"></div>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <script src="data-inventory.js"></script>
+<script src="data-meals-1.js"></script>
+<script src="data-meals-2.js"></script>
+<script src="data-meals-3.js"></script>
+<script src="data-meals-final.js"></script>
+<script src="data-portions.js"></script>
+<script src="app-1.js"></script>
+<script src="app-2.js"></script>
+<script src="app-3.js"></script>
+<script src="app-4.js"></script>
+<script src="app-5.js"></script>
+</body>
+</html>
