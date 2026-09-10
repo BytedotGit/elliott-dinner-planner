@@ -1,6 +1,8 @@
 const DB_NAME = 'elliott-meal-planner-v4';
 const DB_VERSION = 1;
 const STORE = 'state';
+const DATA_SCHEMA_VERSION = 1;
+const STATE_MIRROR_KEY = 'elliott-meal-planner-state-mirror-v1';
 
 let db;
 let deferredInstall = null;
@@ -42,6 +44,7 @@ function freshState(){
   const today=isoDate();
   return {
     version:4,
+    dataSchema:DATA_SCHEMA_VERSION,
     cycleStart:today,
     inventory:SEED_INVENTORY.map(x=>({...x, startQty:x.qty, remaining:x.qty, openedAt:null, discarded:0, purchasedAt:today})),
     portions:PORTION_TEMPLATES.map(p=>({...p, used:false, movedAt:null})),
@@ -51,11 +54,66 @@ function freshState(){
     feedback:[]
   };
 }
-async function save(){await dbPut('appState',state);renderCurrent();}
+
+function safeMirrorRead(){
+  try{return JSON.parse(localStorage.getItem(STATE_MIRROR_KEY)||'null');}catch(e){return null;}
+}
+function safeMirrorWrite(){
+  try{localStorage.setItem(STATE_MIRROR_KEY,JSON.stringify(state));}catch(e){}
+}
+function migrateState(existing){
+  if(!existing || typeof existing!=='object') return freshState();
+  const today=isoDate();
+  existing.version=4;
+  existing.dataSchema=DATA_SCHEMA_VERSION;
+  existing.cycleStart=existing.cycleStart||today;
+  existing.history=Array.isArray(existing.history)?existing.history:[];
+  existing.skipped=existing.skipped&&typeof existing.skipped==='object'?existing.skipped:{};
+  existing.settings={basketSpend:0,takeawayComparison:55,notifications:false,...(existing.settings||{})};
+  existing.feedback=Array.isArray(existing.feedback)?existing.feedback:[];
+
+  const oldInv=new Map((Array.isArray(existing.inventory)?existing.inventory:[]).map(i=>[i.id,i]));
+  existing.inventory=SEED_INVENTORY.map(seed=>{
+    const old=oldInv.get(seed.id);
+    if(!old) return {...seed,startQty:seed.qty,remaining:seed.qty,openedAt:null,discarded:0,purchasedAt:existing.cycleStart};
+    return {
+      ...seed,
+      ...old,
+      id:seed.id,
+      name:seed.name,
+      unit:seed.unit,
+      category:seed.category,
+      shelfDays:seed.shelfDays,
+      openedShelfDays:seed.openedShelfDays,
+      fragility:seed.fragility,
+      note:seed.note||old.note,
+      startQty:Number.isFinite(Number(old.startQty))?Number(old.startQty):seed.qty,
+      remaining:Number.isFinite(Number(old.remaining))?Number(old.remaining):seed.qty,
+      discarded:Number.isFinite(Number(old.discarded))?Number(old.discarded):0,
+      purchasedAt:old.purchasedAt||existing.cycleStart,
+      openedAt:old.openedAt||null
+    };
+  });
+
+  const oldPort=new Map((Array.isArray(existing.portions)?existing.portions:[]).map(p=>[p.id,p]));
+  existing.portions=PORTION_TEMPLATES.map(seed=>({...seed,...(oldPort.get(seed.id)||{}),id:seed.id,ingredient:seed.ingredient,label:seed.label}));
+  return existing;
+}
+
+async function persistState(render=true){
+  await dbPut('appState',state);
+  safeMirrorWrite();
+  if(render)renderCurrent();
+}
+async function save(){await persistState(true);}
 async function load(){
-  state=await dbGet('appState');
-  if(!state||state.version!==4){state=freshState();await dbPut('appState',state);}
+  let stored=null;
+  try{stored=await dbGet('appState');}catch(e){}
+  if(!stored) stored=safeMirrorRead();
+  state=migrateState(stored);
   normalizeDynamicPortions();
+  await persistState(false);
+  try{if(navigator.storage?.persist) await navigator.storage.persist();}catch(e){}
 }
 function normalizeDynamicPortions(){
   const cb=inv('chicken_breast');
@@ -144,4 +202,3 @@ function urgencyBadge(i){
   if(d<=3)return '<span class="badge warn">Use soon</span>';
   return '<span class="badge good">Fine</span>';
 }
-
